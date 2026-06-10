@@ -5,7 +5,6 @@ import {
   GitBranch,
   ListChecks,
   Newspaper,
-  Sparkles,
   Target
 } from "lucide-react";
 import { StepCard } from "@/components/app/step-card";
@@ -30,8 +29,8 @@ export function FeatureInfographic() {
   return (
     <section id="how-it-works" className="grid gap-10">
       <div>
-        <p className="text-sm font-medium text-primary">How Quad works</p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-normal text-foreground">
+        <p className="text-sm font-medium text-[#C0C0C0]">How Quad works</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-normal text-[#F5F5F5]">
           A quieter path from goal to proof.
         </h2>
       </div>
@@ -51,12 +50,12 @@ export function FeatureInfographic() {
         {features.map((feature) => {
           const Icon = feature.icon;
           return (
-            <div key={feature.title} className="rounded-lg border border-border bg-[#101014]/70 p-4">
+            <div key={feature.title} className="rounded-2xl border border-[#2A2A2A] bg-[#111111]/80 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-secondary/25 bg-secondary/10 text-secondary">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#38BDF8]/25 bg-[#38BDF8]/10 text-[#7DD3FC]">
                   <Icon className="h-4 w-4" />
                 </div>
-                <p className="font-medium text-foreground">{feature.title}</p>
+                <p className="font-medium text-[#F5F5F5]">{feature.title}</p>
               </div>
             </div>
           );

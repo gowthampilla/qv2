@@ -17,13 +17,13 @@ export function MemoryTimeline({ memories }: { memories: MemoryItemType[] }) {
       {Object.entries(grouped).map(([month, items]) => (
         <div key={month} className="grid gap-4 md:grid-cols-[180px_1fr]">
           <div>
-            <p className="text-sm font-medium text-foreground">{month}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{items.length} milestones</p>
+            <p className="text-sm font-medium text-[#F5F5F5]">{month}</p>
+            <p className="mt-1 text-xs text-[#8A8A8A]">{items.length} milestones</p>
           </div>
-          <div className="relative grid gap-4 border-l border-border pl-5">
+          <div className="relative grid gap-4 border-l border-[#2A2A2A] pl-5">
             {items.map((memory) => (
               <div key={`${memory.source}-${memory.id}`} className="relative">
-                <span className="absolute -left-[27px] top-5 h-3 w-3 rounded-full border border-primary bg-background" />
+                <span className="absolute -left-[27px] top-5 h-3 w-3 rounded-full border border-[#D4D4D8] bg-[#050505]" />
                 <MemoryItem memory={memory} dateLabel={formatDate(memory.occurredAt)} />
               </div>
             ))}

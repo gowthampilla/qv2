@@ -4,17 +4,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex h-10 items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium tracking-normal transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium tracking-normal transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[0_0_32px_rgba(139,92,246,0.24)] hover:bg-primary/90 hover:shadow-[0_0_40px_rgba(56,189,248,0.18)]",
+          "border border-[#E4E4E7]/80 bg-[#F5F5F5] text-[#050505] shadow-[0_0_28px_rgba(212,212,216,0.14)] hover:bg-[#D4D4D8] hover:shadow-[0_0_36px_rgba(212,212,216,0.22)]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-        ghost: "text-muted-foreground hover:bg-accent hover:text-foreground",
+          "border border-[#38BDF8]/30 bg-[#38BDF8]/10 text-[#BAE6FD] hover:bg-[#38BDF8]/15",
+        ghost: "text-muted-foreground hover:bg-[#171717] hover:text-foreground",
         outline:
-          "border border-border bg-[#101014] text-foreground hover:border-primary/50 hover:bg-accent"
+          "border border-border bg-[#0A0A0A] text-[#F5F5F5] hover:border-[#D4D4D8]/45 hover:bg-[#171717]"
       },
       size: {
         default: "h-10 px-4 py-2",

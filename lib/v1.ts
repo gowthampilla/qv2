@@ -265,17 +265,25 @@ export async function ensureDailyTasks(userId: string, goalSlug?: string) {
 
   const today = todayKey();
   const existing = await getTasksForToday(userId);
-  if (existing.length > 0) {
+  if (existing.length >= 4) {
     return existing;
   }
 
   const templates = await getTaskTemplates(goalSlug, 4);
   const source = templates.length > 0 ? templates : fallbackTaskTemplates(goalSlug);
+  const existingTitles = new Set(existing.map((task) => task.title.toLowerCase()));
+  const tasksToCreate = source
+    .filter((task) => !existingTitles.has(task.title.toLowerCase()))
+    .slice(0, 4 - existing.length);
+
+  if (tasksToCreate.length === 0) {
+    return existing;
+  }
 
   const { data, error } = await getSupabaseAdmin()
     .from("user_tasks")
     .insert(
-      source.slice(0, 4).map((task) => ({
+      tasksToCreate.map((task) => ({
         user_id: userId,
         task_template_id: task.id ?? null,
         title: task.title,
@@ -287,7 +295,7 @@ export async function ensureDailyTasks(userId: string, goalSlug?: string) {
     )
     .select("*");
 
-  return error ? [] : ((data ?? []) as UserTask[]);
+  return error ? existing : [...existing, ...((data ?? []) as UserTask[])];
 }
 
 export async function getTasksForToday(userId: string) {
@@ -317,13 +325,75 @@ export async function getAllUserTasks(userId: string, limit?: number) {
 }
 
 export async function completeTask(taskId: string, userId: string) {
-  await getSupabaseAdmin()
+  const supabase = getSupabaseAdmin();
+  const { data: task } = await supabase
     .from("user_tasks")
-    .update({ status: "complete", completed_at: new Date().toISOString() })
+    .select("*")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!task || task.status === "complete") {
+    return;
+  }
+
+  const completedAt = new Date().toISOString();
+
+  await supabase
+    .from("user_tasks")
+    .update({ status: "complete", completed_at: completedAt })
     .eq("id", taskId)
     .eq("user_id", userId);
 
+  await saveTaskCompletionMemory({
+    userId,
+    title: task.title,
+    description: task.description,
+    occurredAt: completedAt
+  });
+
   await refreshStreak(userId);
+}
+
+export async function completeSuggestedTask(
+  user: CurrentUser,
+  title: string,
+  description: string
+) {
+  const existingTasks = await getTasksForToday(user.userId);
+  const matchingTask = existingTasks.find(
+    (task) => task.title.toLowerCase() === title.toLowerCase()
+  );
+
+  if (matchingTask?.status === "complete") {
+    return;
+  }
+
+  if (matchingTask) {
+    await completeTask(matchingTask.id, user.userId);
+    return;
+  }
+
+  const occurredAt = new Date().toISOString();
+  await getSupabaseAdmin().from("user_tasks").insert({
+    user_id: user.userId,
+    task_template_id: null,
+    title,
+    description,
+    status: "complete",
+    due_date: todayKey(),
+    points: 10,
+    completed_at: occurredAt
+  });
+
+  await saveTaskCompletionMemory({
+    userId: user.userId,
+    githubUsername: user.githubUsername,
+    title,
+    description,
+    occurredAt
+  });
+  await refreshStreak(user.userId);
 }
 
 export async function addManualProgress(user: CurrentUser, text: string) {
@@ -342,6 +412,35 @@ export async function addManualProgress(user: CurrentUser, text: string) {
   });
 
   await refreshStreak(user.userId);
+}
+
+async function saveTaskCompletionMemory({
+  userId,
+  githubUsername,
+  title,
+  description,
+  occurredAt
+}: {
+  userId: string;
+  githubUsername?: string | null;
+  title: string;
+  description: string;
+  occurredAt: string;
+}) {
+  const activityText = `Completed task: ${title}. ${description}`;
+  const memorySentence = await createMemorySentence({
+    rawText: activityText,
+    activityType: "task completion"
+  });
+
+  await getSupabaseAdmin().from("manual_activities").insert({
+    user_id: userId,
+    github_username: githubUsername ?? null,
+    activity_text: activityText,
+    memory_sentence: memorySentence,
+    activity_type: "task completion",
+    occurred_at: occurredAt
+  });
 }
 
 export async function refreshStreak(userId: string) {

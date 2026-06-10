@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { MobileNav, Sidebar } from "@/components/app/sidebar";
+import { MobileNav } from "@/components/app/mobile-nav";
+import { Sidebar } from "@/components/app/sidebar";
 
 export function AppShell({
   children,

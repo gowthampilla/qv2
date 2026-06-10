@@ -25,7 +25,7 @@ export default async function OnboardingPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-primary" />
+            <Target className="h-4 w-4 text-[#D4D4D8]" />
             Career direction
           </CardTitle>
           <CardDescription>Select one goal for now. You can change it later.</CardDescription>
@@ -36,10 +36,10 @@ export default async function OnboardingPage() {
               {goals.map((goal) => (
                 <label
                   key={goal.slug}
-                  className="group flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-[#101014] p-4 transition-colors hover:border-primary/40 hover:bg-card"
+                  className="group flex cursor-pointer items-start gap-3 rounded-2xl border border-[#2A2A2A] bg-[#0A0A0A] p-4 transition-colors hover:border-[#D4D4D8]/40 hover:bg-[#111111]"
                 >
                   <input
-                    className="mt-1 accent-primary"
+                    className="mt-1 accent-[#D4D4D8]"
                     type="radio"
                     name="goal"
                     value={goal.slug}
@@ -47,8 +47,8 @@ export default async function OnboardingPage() {
                     required
                   />
                   <span>
-                    <span className="block font-medium text-foreground">{goal.name}</span>
-                    <span className="mt-1 block text-sm leading-6 text-muted-foreground">
+                    <span className="block font-medium text-[#F5F5F5]">{goal.name}</span>
+                    <span className="mt-1 block text-sm leading-6 text-[#8A8A8A]">
                       {goal.description}
                     </span>
                     {selectedGoal?.slug === goal.slug ? (

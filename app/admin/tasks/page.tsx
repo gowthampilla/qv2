@@ -124,7 +124,7 @@ function SelectGoal({ goals, defaultValue }: { goals: GoalRecord[]; defaultValue
 function ActiveCheckbox({ defaultChecked }: { defaultChecked: boolean }) {
   return (
     <label className="flex items-center gap-2 text-sm text-muted-foreground">
-      <input type="checkbox" name="is_active" defaultChecked={defaultChecked} className="accent-primary" />
+      <input type="checkbox" name="is_active" defaultChecked={defaultChecked} className="accent-[#D4D4D8]" />
       Active
     </label>
   );

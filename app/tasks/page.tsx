@@ -57,7 +57,7 @@ export default async function TasksPage() {
           : suggestions.map((task) => (
               <Card key={task.title}>
                 <CardContent className="flex gap-3 p-5">
-                  <ListChecks className="mt-1 h-4 w-4 text-primary" />
+                  <ListChecks className="mt-1 h-4 w-4 text-[#D4D4D8]" />
                   <div>
                     <p className="font-medium text-foreground">{task.title}</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">

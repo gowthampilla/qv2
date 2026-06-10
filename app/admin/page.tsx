@@ -17,7 +17,7 @@ export default async function AdminPage() {
       <PageHeader
         eyebrow="Founder Console"
         title="Admin Dashboard"
-        description={`Signed in as ${session.email}. Manage the content that powers Quad’s user dashboards.`}
+        description={`Signed in as ${session.email}. Manage the content that powers Quad's user dashboards.`}
         actions={
           <Button asChild variant="outline">
             <a href="/dashboard">User dashboard</a>
@@ -27,19 +27,19 @@ export default async function AdminPage() {
 
       <section className="grid gap-6 md:grid-cols-3">
         <StatCard
-          icon={<Briefcase className="h-4 w-4 text-primary" />}
+          icon={<Briefcase className="h-4 w-4 text-[#D4D4D8]" />}
           label="Opportunities"
           value={overview.opportunities}
           detail="Founder-created records"
         />
         <StatCard
-          icon={<ListChecks className="h-4 w-4 text-primary" />}
+          icon={<ListChecks className="h-4 w-4 text-[#D4D4D8]" />}
           label="Task templates"
           value={overview.taskTemplates}
           detail="Goal-based daily work"
         />
         <StatCard
-          icon={<Newspaper className="h-4 w-4 text-primary" />}
+          icon={<Newspaper className="h-4 w-4 text-[#D4D4D8]" />}
           label="Feed posts"
           value={overview.feedPosts}
           detail="Curated guidance"
@@ -55,7 +55,7 @@ export default async function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
+            <Shield className="h-4 w-4 text-[#D4D4D8]" />
             V1 admin model
           </CardTitle>
           <CardDescription>
@@ -72,7 +72,7 @@ function AdminLink({ title, href }: { title: string; href: string }) {
   return (
     <a
       href={href}
-      className="rounded-lg border border-border bg-card p-5 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-card/80"
+      className="rounded-2xl border border-[#2A2A2A] bg-[#111111] p-5 text-sm font-medium text-[#F5F5F5] transition-colors hover:border-[#D4D4D8]/40 hover:bg-[#171717]"
     >
       {title}
     </a>

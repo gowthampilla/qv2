@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   addManualProgress,
+  completeSuggestedTask,
   completeTask,
   getCurrentUser,
   goals,
@@ -33,6 +34,27 @@ export async function completeTaskAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/tasks");
+  revalidatePath("/memory");
+  revalidatePath("/profile");
+}
+
+export async function completeSuggestedTaskAction(formData: FormData) {
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const user = await getCurrentUser();
+
+  if (title) {
+    await completeSuggestedTask(
+      user,
+      title,
+      description || "Completed a focused career readiness task."
+    );
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/tasks");
+  revalidatePath("/memory");
   revalidatePath("/profile");
 }
 

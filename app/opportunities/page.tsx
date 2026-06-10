@@ -38,14 +38,14 @@ export default async function OpportunitiesPage() {
           <CardHeader>
             <CardTitle>{"We're preparing matched opportunities for your goal."}</CardTitle>
             <CardDescription>
-              For today, build momentum with these actions.
+              For today, build with these actions.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {fallback.slice(0, 3).map((task) => (
-              <div key={task.title} className="rounded-lg border border-border bg-[#101014] p-4">
-                <p className="font-medium text-foreground">{task.title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              <div key={task.title} className="rounded-2xl border border-[#2A2A2A] bg-[#0A0A0A] p-4">
+                <p className="font-medium text-[#F5F5F5]">{task.title}</p>
+                <p className="mt-2 text-sm leading-6 text-[#8A8A8A]">
                   {task.description}
                 </p>
               </div>

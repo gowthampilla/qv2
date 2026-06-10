@@ -1,27 +1,34 @@
 import { Plus } from "lucide-react";
+import { redirect } from "next/navigation";
 import { addManualProgressAction } from "@/app/actions";
 import { AppShell } from "@/components/app/app-shell";
-import { EmptyState } from "@/components/app/empty-state";
 import { FeedCard } from "@/components/app/feed-card";
-import { FocusCard } from "@/components/app/focus-card";
 import { MemoryItem } from "@/components/app/memory-item";
-import { MomentumCard } from "@/components/app/momentum-card";
 import { OpportunityCard } from "@/components/app/opportunity-card";
-import { PageHeader } from "@/components/app/page-header";
 import { QuadInsightCard } from "@/components/app/quad-insight-card";
+import { ReadinessBreakdown } from "@/components/app/readiness-breakdown";
+import { ReadinessHero } from "@/components/app/readiness-hero";
+import { TodayFocusCard } from "@/components/app/today-focus-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  calculateQuadScore,
+  calculateReadinessScore,
+  calculateTodayImpact,
+  getBiggestGap,
+  getReadinessBreakdown
+} from "@/lib/readiness";
+import {
+  ensureDailyTasks,
   fallbackTaskTemplates,
-  formatDateTime,
   getAllMemories,
+  getAllUserTasks,
   getCurrentStreak,
   getCurrentUser,
   getFeedPosts,
   getGithubStats,
   getOpportunities,
-  getSelectedGoal,
-  getTasksForToday
+  getSelectedGoal
 } from "@/lib/v1";
 
 export const dynamic = "force-dynamic";
@@ -45,181 +52,196 @@ export default async function DashboardPage() {
     withPageTimeout(getCurrentStreak(user.userId), 0, 5000)
   ]);
 
+  if (!goal) {
+    redirect("/onboarding");
+  }
+
   const [tasks, opportunities, feedPosts] = await Promise.all([
-    withPageTimeout(getTasksForToday(user.userId), [], 5000),
-    withPageTimeout(goal ? getOpportunities(goal.slug, 1) : Promise.resolve([]), [], 5000),
-    withPageTimeout(goal ? getFeedPosts(goal.slug, 2) : Promise.resolve([]), [], 5000)
+    withPageTimeout(ensureDailyTasks(user.userId, goal.slug), [], 5000),
+    withPageTimeout(getOpportunities(goal.slug, 3), [], 5000),
+    withPageTimeout(getFeedPosts(goal.slug, 2), [], 5000)
   ]);
+  const allTasks = await withPageTimeout(getAllUserTasks(user.userId, 100), tasks, 5000);
+  const allMemories = await withPageTimeout(
+    getAllMemories(undefined, { normalize: false }),
+    memories,
+    5000
+  );
   const fallbackTasks = fallbackTaskTemplates(goal?.slug);
+  const completedTasks = allTasks.filter((task) => task.status === "complete").length;
+  const quadScore = calculateQuadScore({
+    completedTasks,
+    memories: allMemories.length,
+    githubActivities: stats.totalActivities,
+    streak
+  });
+  const readinessScore = calculateReadinessScore(
+    user,
+    allTasks,
+    allMemories,
+    stats.totalActivities,
+    opportunities,
+    {
+      goal,
+      githubConnected: stats.connected,
+      streak
+    }
+  );
+  const todayImpact = calculateTodayImpact(
+    tasks,
+    tasks.length === 0 ? fallbackTasks.length : 0
+  );
+  const targetReadiness = Math.min(100, readinessScore + todayImpact.potentialGain);
+  const biggestGap = getBiggestGap({
+    memories: allMemories.length,
+    githubActivities: stats.totalActivities,
+    completedTasks
+  });
+  const breakdown = getReadinessBreakdown({
+    goalSelected: Boolean(goal),
+    memories: allMemories.length,
+    githubActivities: stats.totalActivities,
+    completedTasks,
+    streak,
+    opportunities: opportunities.length
+  });
   const insight = buildInsight({
     goalName: goal?.name,
-    githubConnected: stats.connected,
-    lastSyncTime: stats.lastSyncTime
+    readinessScore,
+    biggestGap,
+    pendingCount: todayImpact.pendingCount
   });
 
   return (
     <AppShell>
-          <PageHeader
-            eyebrow="Home"
-            title={`Hi ${user.name}.`}
-            description={goal ? `Current goal: ${goal.name}` : "Choose one goal so Quad can guide your next move."}
-            actions={
-              !goal ? (
-                <Button asChild>
-                  <a href="/onboarding">Choose goal</a>
+      <ReadinessHero
+        userName={user.name}
+        goalName={goal.name}
+        readiness={readinessScore}
+        quadScore={quadScore}
+        targetReadiness={targetReadiness}
+        pendingCount={todayImpact.pendingCount}
+        biggestGap={biggestGap}
+      />
+
+      <TodayFocusCard tasks={tasks} suggestions={fallbackTasks} goalName={goal.name} />
+
+      <QuadInsightCard insight={insight} />
+
+      <ReadinessBreakdown segments={breakdown} />
+
+      <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
+        <div className="grid gap-5">
+          <Card>
+            <CardHeader>
+              <CardTitle>Career memory preview</CardTitle>
+              <CardDescription>Latest milestones Quad has remembered.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {allMemories.length === 0 ? (
+                <p className="text-sm leading-6 text-muted-foreground">
+                  No memory yet. Add one short progress note today.
+                </p>
+              ) : (
+                allMemories.slice(0, 3).map((memory) => (
+                  <MemoryItem key={`${memory.source}-${memory.id}`} memory={memory} />
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Add Today&apos;s Progress</CardTitle>
+              <CardDescription>Save one proof point to your career memory.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={addManualProgressAction} className="grid gap-3">
+                <textarea
+                  className="form-textarea"
+                  name="progress"
+                  placeholder="I solved 2 LeetCode problems and studied Spring Boot."
+                  required
+                />
+                <Button type="submit" className="w-fit">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Save progress
                 </Button>
-              ) : undefined
-            }
-          />
+              </form>
+            </CardContent>
+          </Card>
+        </div>
 
-          <section className="grid gap-5 lg:grid-cols-[1fr_280px]">
-            <FocusCard tasks={tasks} suggestions={fallbackTasks} />
-            <MomentumCard streak={streak} />
-          </section>
+        <div className="grid content-start gap-5">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recommended opportunity</CardTitle>
+              <CardDescription>Curated for your goal.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {opportunities.length > 0 ? (
+                opportunities.slice(0, 1).map((item) => (
+                  <OpportunityCard key={item.id} opportunity={item} goalName={goal?.name} />
+                ))
+              ) : (
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {"We're preparing matched opportunities for your goal."}
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
-          {!stats.connected ? (
-            <EmptyState
-              title="Connect GitHub when you are ready."
-              description="Quad can import public work into career memory. You can still start fresh today."
-              action={
-                <Button asChild variant="outline">
-                  <a href="/api/github/login">Connect GitHub</a>
-                </Button>
-              }
-            />
-          ) : null}
-
-          <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
-            <div className="grid gap-5">
-              <QuadInsightCard insight={insight} />
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Career memory preview</CardTitle>
-                  <CardDescription>Your latest remembered work.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  {memories.length === 0 ? (
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      No memory yet. Add one short progress note today.
-                    </p>
-                  ) : (
-                    memories.map((memory) => (
-                      <MemoryItem key={`${memory.source}-${memory.id}`} memory={memory} />
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Add progress</CardTitle>
-                  <CardDescription>Save a small proof point to memory.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form action={addManualProgressAction} className="grid gap-3">
-                    <textarea
-                      className="form-textarea"
-                      name="progress"
-                      placeholder="I shipped a small feature and wrote down what changed."
-                      required
-                    />
-                    <Button type="submit" className="w-fit">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Save to memory
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid content-start gap-5">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recommended opportunity</CardTitle>
-                  <CardDescription>Curated for your goal.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  {opportunities.length > 0 ? (
-                    opportunities.map((item) => (
-                      <OpportunityCard key={item.id} opportunity={item} goalName={goal?.name} />
-                    ))
-                  ) : (
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {"We're preparing matched opportunities for your goal."}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Feed preview</CardTitle>
-                  <CardDescription>Founder-curated guidance.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  {(feedPosts.length > 0
-                    ? feedPosts
-                    : [
-                        {
-                          id: "fallback-feed-1",
-                          title: "Build one visible proof point today",
-                          description: "A small shipped artifact is more useful than a long private plan.",
-                          content_type: "roadmap tip",
-                          url: ""
-                        }
-                      ]
-                  ).map((post) => (
-                    <FeedCard
-                      key={post.id}
-                      title={post.title}
-                      description={post.description}
-                      contentType={post.content_type}
-                      url={post.url}
-                    />
-                  ))}
-                </CardContent>
-              </Card>
-
-              <p className="text-xs leading-5 text-muted-foreground">
-                GitHub sync: {formatDateTime(stats.lastSyncTime)}
-              </p>
-            </div>
-          </section>
+          <Card>
+            <CardHeader>
+              <CardTitle>Feed preview</CardTitle>
+              <CardDescription>Founder-curated guidance.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {(feedPosts.length > 0
+                ? feedPosts
+                : [
+                    {
+                      id: "fallback-feed-1",
+                      title: "Build one visible proof point today",
+                      description:
+                        "A small shipped artifact is more useful than a long private plan.",
+                      content_type: "roadmap tip",
+                      url: ""
+                    }
+                  ]
+              ).map((post) => (
+                <FeedCard
+                  key={post.id}
+                  title={post.title}
+                  description={post.description}
+                  contentType={post.content_type}
+                  url={post.url}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </AppShell>
   );
 }
 
 function buildInsight({
   goalName,
-  githubConnected,
-  lastSyncTime
+  readinessScore,
+  biggestGap,
+  pendingCount
 }: {
   goalName?: string;
-  githubConnected: boolean;
-  lastSyncTime?: string;
+  readinessScore: number;
+  biggestGap: string;
+  pendingCount: number;
 }) {
   if (!goalName) {
     return "Choose a goal first. Then Quad will turn it into a small set of actions for today.";
   }
 
-  if (!githubConnected) {
-    return `You're starting toward ${goalName}. Today, focus on one project task and one progress note.`;
-  }
-
-  if (!lastSyncTime) {
-    return `You're making progress toward ${goalName}. A small GitHub update today will strengthen your builder profile.`;
-  }
-
-  const daysSinceSync = Math.floor(
-    (Date.now() - new Date(lastSyncTime).getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  if (daysSinceSync >= 3) {
-    return `You have not pushed code recently. A small GitHub update today will strengthen your builder profile.`;
-  }
-
-  return `You're making progress toward ${goalName}. Today, focus on one project task and one application task.`;
+  return `You're ${readinessScore}% ready for ${goalName}. Your biggest gap is ${biggestGap.toLowerCase()}. Complete ${pendingCount} focused actions today to improve the signal.`;
 }
 
 function withPageTimeout<T>(promise: Promise<T>, fallback: T, ms: number) {

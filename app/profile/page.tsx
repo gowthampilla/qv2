@@ -20,7 +20,7 @@ export default async function ProfilePage() {
     githubUsername: user.githubUsername ?? undefined
   };
   const stats = await withPageTimeout(getProfileStats(user), fallbackStats, 5000);
-  const momentumScore = Math.min(100, stats.streak * 8 + stats.completedTasks * 4 + stats.totalMemories * 2);
+  const builderScore = Math.min(100, stats.streak * 8 + stats.completedTasks * 4 + stats.totalMemories * 2);
 
   return (
     <AppShell>
@@ -32,11 +32,11 @@ export default async function ProfilePage() {
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         <StatCard label="Goal" value={stats.goal?.name ?? "Not selected"} />
-        <StatCard label="Momentum score" value={momentumScore} detail="Based on streak, tasks, and memory." />
+        <StatCard label="Builder score" value={builderScore} detail="Based on streak, tasks, and memory." />
         <StatCard label="Current streak" value={`${stats.streak} days`} />
         <StatCard label="Career memory" value={stats.totalMemories} detail="Saved milestones." />
         <StatCard
-          icon={<GitBranch className="h-4 w-4 text-primary" />}
+          icon={<GitBranch className="h-4 w-4 text-[#D4D4D8]" />}
           label="GitHub"
           value={stats.githubUsername ? "Connected" : "Not connected"}
           detail={stats.githubUsername ?? "Connect GitHub in settings."}
@@ -48,7 +48,7 @@ export default async function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-primary" />
+              <ShieldCheck className="h-4 w-4 text-[#D4D4D8]" />
               Skills detected
             </CardTitle>
             <CardDescription>Inferred from GitHub repository metadata.</CardDescription>
@@ -56,7 +56,7 @@ export default async function ProfilePage() {
           <CardContent className="flex flex-wrap gap-2">
             {stats.skills.length > 0 ? (
               stats.skills.map((skill) => (
-                <span key={skill} className="rounded-full border border-border bg-[#101014] px-3 py-1 text-sm text-muted-foreground">
+                <span key={skill} className="rounded-full border border-[#2A2A2A] bg-[#0A0A0A] px-3 py-1 text-sm text-[#C0C0C0]">
                   {skill}
                 </span>
               ))
@@ -74,7 +74,7 @@ export default async function ProfilePage() {
           <CardContent className="grid gap-2">
             {stats.projects.length > 0 ? (
               stats.projects.map((project) => (
-                <p key={project} className="rounded-lg border border-border bg-[#101014] px-3 py-2 text-sm text-foreground">
+                <p key={project} className="rounded-xl border border-[#2A2A2A] bg-[#0A0A0A] px-3 py-2 text-sm text-[#F5F5F5]">
                   {project}
                 </p>
               ))

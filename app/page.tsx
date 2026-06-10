@@ -1,5 +1,6 @@
-import { ArrowRight, GitBranch, Play, Sparkles } from "lucide-react";
+import { ArrowRight, GitBranch, Play } from "lucide-react";
 import { FeatureInfographic } from "@/components/app/feature-infographic";
+import { QuadLogo } from "@/components/app/quad-logo";
 import { Button } from "@/components/ui/button";
 import { hasStoredSession } from "@/lib/session";
 
@@ -11,15 +12,9 @@ export default function HomePage() {
   return (
     <main className="premium-surface min-h-screen px-5 py-6">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-20">
-        <nav className="flex items-center justify-between border-b border-border/80 pb-5">
-          <a href="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/15 text-primary shadow-[0_0_28px_rgba(139,92,246,0.2)]">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-normal">Quad</p>
-              <p className="text-xs text-muted-foreground">AI Builder Copilot</p>
-            </div>
+        <nav className="flex items-center justify-between border-b border-[#2A2A2A] pb-5">
+          <a href="/" className="block">
+            <QuadLogo />
           </a>
           <Button asChild variant={loggedIn ? "default" : "outline"}>
             <a href={loggedIn ? "/dashboard" : "/api/github/login"}>
@@ -31,13 +26,13 @@ export default function HomePage() {
 
         <section className="grid min-h-[calc(100vh-220px)] gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
-            <p className="text-sm font-medium text-primary">
+            <p className="text-sm font-medium text-[#C0C0C0]">
               For students, job seekers, and builders
             </p>
-            <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-tight tracking-normal text-foreground md:text-7xl">
+            <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-tight tracking-normal text-[#F5F5F5] md:text-7xl">
               Your AI companion for becoming job-ready.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground md:text-lg">
+            <p className="mt-6 max-w-2xl text-base leading-8 text-[#C0C0C0] md:text-lg">
               Quad turns your goals into daily actions, tracks your progress,
               remembers your work, and shows what to do next.
             </p>
@@ -61,16 +56,16 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="glass-panel rounded-lg p-4">
-            <div className="rounded-lg border border-border bg-[#07070A] p-5">
+          <div className="glass-panel rounded-2xl p-4">
+            <div className="rounded-2xl border border-[#2A2A2A] bg-[#050505] p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Your next move</p>
-                  <p className="mt-2 text-xl font-semibold text-foreground">
+                  <p className="text-sm text-[#8A8A8A]">Your next move</p>
+                  <p className="mt-2 text-xl font-semibold text-[#F5F5F5]">
                     {"Complete today's 3 actions"}
                   </p>
                 </div>
-                <div className="h-2 w-24 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#38BDF8]" />
+                <div className="h-2 w-24 rounded-full bg-[#D4D4D8]" />
               </div>
               <div className="mt-6 grid gap-3">
                 {[
@@ -78,13 +73,13 @@ export default function HomePage() {
                   "Practice one core skill",
                   "Save a progress note"
                 ].map((item) => (
-                  <div key={item} className="rounded-lg border border-border bg-[#101014] p-4">
-                    <p className="text-sm font-medium text-foreground">{item}</p>
+                  <div key={item} className="rounded-2xl border border-[#2A2A2A] bg-[#111111] p-4">
+                    <p className="text-sm font-medium text-[#F5F5F5]">{item}</p>
                   </div>
                 ))}
               </div>
-              <div className="mt-5 rounded-lg border border-primary/25 bg-primary/10 p-4">
-                <p className="text-sm leading-6 text-foreground">
+              <div className="mt-5 rounded-2xl border border-[#38BDF8]/25 bg-[#38BDF8]/10 p-4">
+                <p className="text-sm leading-6 text-[#BAE6FD]">
                   {"You're making progress. Today, focus on one project task and one application task."}
                 </p>
               </div>

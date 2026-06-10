@@ -13,16 +13,16 @@ export function StatCard({
   icon?: ReactNode;
 }) {
   return (
-    <Card className="glass-panel transition-colors hover:border-primary/30">
+    <Card className="glass-panel transition-colors hover:border-[#D4D4D8]/35">
       <CardHeader className="p-5 pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
+        <CardTitle className="flex items-center gap-2 text-sm text-[#8A8A8A]">
           {icon}
           {label}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-5 pt-0">
-        <p className="text-2xl font-semibold leading-tight text-foreground">{value}</p>
-        {detail ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{detail}</p> : null}
+        <p className="text-2xl font-semibold leading-tight text-[#F5F5F5]">{value}</p>
+        {detail ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#8A8A8A]">{detail}</p> : null}
       </CardContent>
     </Card>
   );
