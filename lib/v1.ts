@@ -1,4 +1,5 @@
 import { createMemorySentence } from "@/lib/ai";
+import { isCareerProgressText } from "@/lib/progress-validation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 
@@ -185,11 +186,32 @@ export async function saveSelectedGoal(user: CurrentUser, goalSlug: string) {
 }
 
 export async function getGithubStats() {
-  const { data } = await getSupabaseAdmin()
+  return getGithubStatsForUser();
+}
+
+export async function getGithubStatsForUser(user?: CurrentUser) {
+  const query = getSupabaseAdmin()
     .from("github_activities")
     .select("id, github_username, repo_metadata, occurred_at, created_at")
     .order("created_at", { ascending: false });
 
+  if (user && !user.githubUsername && !user.githubUserId) {
+    return {
+      connected: false,
+      githubUsername: undefined,
+      totalRepos: 0,
+      totalActivities: 0,
+      lastSyncTime: undefined
+    };
+  }
+
+  if (user?.githubUserId) {
+    query.eq("github_user_id", Number(user.githubUserId));
+  } else if (user?.githubUsername) {
+    query.eq("github_username", user.githubUsername);
+  }
+
+  const { data } = await query;
   const rows = data ?? [];
   const repos = new Set(
     rows
@@ -208,11 +230,11 @@ export async function getGithubStats() {
 
 export async function getAllMemories(
   limit?: number,
-  options: { normalize?: boolean } = { normalize: true }
+  options: { normalize?: boolean; user?: CurrentUser } = { normalize: true }
 ): Promise<MemoryItem[]> {
   const [github, manual] = await Promise.all([
-    getGithubMemories(limit, options.normalize ?? true),
-    getManualMemories(limit, options.normalize ?? true)
+    getGithubMemories(limit, options.normalize ?? true, options.user),
+    getManualMemories(limit, options.normalize ?? true, options.user)
   ]);
 
   const memories = [...github, ...manual].sort(
@@ -397,6 +419,10 @@ export async function completeSuggestedTask(
 }
 
 export async function addManualProgress(user: CurrentUser, text: string) {
+  if (!isCareerProgressText(text)) {
+    return false;
+  }
+
   const memorySentence = await createMemorySentence({
     rawText: text,
     activityType: "manual progress"
@@ -412,6 +438,7 @@ export async function addManualProgress(user: CurrentUser, text: string) {
   });
 
   await refreshStreak(user.userId);
+  return true;
 }
 
 async function saveTaskCompletionMemory({
@@ -458,23 +485,32 @@ export async function refreshStreak(userId: string) {
   return currentStreak;
 }
 
-export async function getCurrentStreak(userId: string) {
-  const { data } = await getSupabaseAdmin()
-    .from("streaks")
-    .select("current_streak")
-    .eq("user_id", userId)
-    .maybeSingle();
+export async function refreshStreakForUser(user: CurrentUser) {
+  const activeDays = await getActiveDays(user.userId, user);
+  const currentStreak = calculateCurrentStreak(activeDays);
+  const lastActiveDate = activeDays[0] ?? null;
 
-  return data?.current_streak ?? refreshStreak(userId);
+  await getSupabaseAdmin().from("streaks").upsert({
+    user_id: user.userId,
+    current_streak: currentStreak,
+    last_active_date: lastActiveDate,
+    updated_at: new Date().toISOString()
+  });
+
+  return currentStreak;
+}
+
+export async function getCurrentStreak(userId: string, user?: CurrentUser) {
+  return user ? refreshStreakForUser(user) : refreshStreak(userId);
 }
 
 export async function getProfileStats(user: CurrentUser) {
   const [goal, memories, tasks, stats, streak] = await Promise.all([
     getSelectedGoal(user.userId),
-    getAllMemories(undefined, { normalize: false }),
+    getAllMemories(undefined, { normalize: false, user }),
     getAllUserTasks(user.userId),
-    getGithubStats(),
-    getCurrentStreak(user.userId)
+    getGithubStatsForUser(user),
+    getCurrentStreak(user.userId, user)
   ]);
 
   return {
@@ -482,9 +518,10 @@ export async function getProfileStats(user: CurrentUser) {
     memories,
     completedTasks: tasks.filter((task) => task.status === "complete").length,
     totalMemories: memories.length,
+    githubActivities: stats.totalActivities,
     streak,
     projects: getProjects(memories),
-    skills: await getDetectedSkills(),
+    skills: await getDetectedSkills(user),
     githubUsername: stats.githubUsername
   };
 }
@@ -549,13 +586,24 @@ export function fallbackTaskTemplates(goalSlug?: string): TaskTemplate[] {
 
 async function getGithubMemories(
   limit?: number,
-  normalize = true
+  normalize = true,
+  user?: CurrentUser
 ): Promise<MemoryItem[]> {
   const supabase = getSupabaseAdmin();
   const query = supabase
     .from("github_activities")
     .select("id, activity_text, memory_sentence, repo_metadata, activity_type, occurred_at")
     .order("occurred_at", { ascending: false });
+
+  if (user && !user.githubUsername && !user.githubUserId) {
+    return [];
+  }
+
+  if (user?.githubUserId) {
+    query.eq("github_user_id", Number(user.githubUserId));
+  } else if (user?.githubUsername) {
+    query.eq("github_username", user.githubUsername);
+  }
 
   if (limit) {
     query.limit(limit);
@@ -568,6 +616,12 @@ async function getGithubMemories(
       .from("github_activities")
       .select("id, activity_text, repo_metadata, activity_type, occurred_at")
       .order("occurred_at", { ascending: false });
+
+    if (user?.githubUserId) {
+      fallbackQuery.eq("github_user_id", Number(user.githubUserId));
+    } else if (user?.githubUsername) {
+      fallbackQuery.eq("github_username", user.githubUsername);
+    }
 
     if (limit) {
       fallbackQuery.limit(limit);
@@ -589,7 +643,10 @@ async function getGithubMemories(
     }));
   }
 
-  const rows = data ?? [];
+  const rows = (data ?? []).filter(
+    (row) =>
+      row.activity_type !== "non-career" && isCareerProgressText(row.activity_text)
+  );
   const missing = normalize ? rows.filter((row) => !row.memory_sentence) : [];
   const generated = await Promise.all(
     missing.map(async (row) => {
@@ -622,13 +679,18 @@ async function getGithubMemories(
 
 async function getManualMemories(
   limit?: number,
-  normalize = true
+  normalize = true,
+  user?: CurrentUser
 ): Promise<MemoryItem[]> {
   const supabase = getSupabaseAdmin();
   const query = supabase
     .from("manual_activities")
     .select("id, activity_text, memory_sentence, activity_type, occurred_at")
     .order("occurred_at", { ascending: false });
+
+  if (user) {
+    query.eq("user_id", user.userId);
+  }
 
   if (limit) {
     query.limit(limit);
@@ -669,16 +731,29 @@ async function getManualMemories(
   }));
 }
 
-async function getActiveDays(userId: string) {
+async function getActiveDays(userId: string, user?: CurrentUser) {
   const supabase = getSupabaseAdmin();
+  const githubQuery = supabase.from("github_activities").select("occurred_at");
+
+  if (user?.githubUserId) {
+    githubQuery.eq("github_user_id", Number(user.githubUserId));
+  } else if (user?.githubUsername) {
+    githubQuery.eq("github_username", user.githubUsername);
+  } else {
+    githubQuery.eq("github_username", "__no_github_user__");
+  }
+
   const [tasks, github, manual] = await Promise.all([
     supabase
       .from("user_tasks")
       .select("completed_at")
       .eq("user_id", userId)
       .eq("status", "complete"),
-    supabase.from("github_activities").select("occurred_at"),
-    supabase.from("manual_activities").select("occurred_at").eq("user_id", userId)
+    githubQuery,
+    supabase
+      .from("manual_activities")
+      .select("occurred_at, activity_text, activity_type")
+      .eq("user_id", userId)
   ]);
 
   const dates = new Set<string>();
@@ -686,15 +761,32 @@ async function getActiveDays(userId: string) {
     if (row.completed_at) dates.add(toDateKey(row.completed_at));
   });
   (github.data ?? []).forEach((row) => dates.add(toDateKey(row.occurred_at)));
-  (manual.data ?? []).forEach((row) => dates.add(toDateKey(row.occurred_at)));
+  (manual.data ?? []).forEach((row) => {
+    if (
+      row.activity_type !== "non-career" &&
+      isCareerProgressText(row.activity_text)
+    ) {
+      dates.add(toDateKey(row.occurred_at));
+    }
+  });
 
   return Array.from(dates).sort((a, b) => b.localeCompare(a));
 }
 
-async function getDetectedSkills() {
-  const { data, error } = await getSupabaseAdmin()
+async function getDetectedSkills(user?: CurrentUser) {
+  const query = getSupabaseAdmin()
     .from("github_activities")
     .select("repo_metadata");
+
+  if (user?.githubUserId) {
+    query.eq("github_user_id", Number(user.githubUserId));
+  } else if (user?.githubUsername) {
+    query.eq("github_username", user.githubUsername);
+  } else if (user) {
+    return [];
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return [];
@@ -717,12 +809,18 @@ function getProjects(memories: MemoryItem[]) {
 
 function calculateCurrentStreak(activeDays: string[]) {
   const active = new Set(activeDays);
-  let cursor = new Date(todayKey());
+  const today = todayKey();
+  const yesterday = addDaysToDateKey(today, -1);
+  let cursor = active.has(today)
+    ? today
+    : active.has(yesterday)
+      ? yesterday
+      : "";
   let streak = 0;
 
-  while (active.has(toDateKey(cursor.toISOString()))) {
+  while (cursor && active.has(cursor)) {
     streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+    cursor = addDaysToDateKey(cursor, -1);
   }
 
   return streak;
@@ -733,7 +831,23 @@ export function todayKey() {
 }
 
 export function toDateKey(value: string) {
-  return new Date(value).toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: process.env.QUAD_TIME_ZONE ?? "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date(value));
+  const year = parts.find((part) => part.type === "year")?.value ?? "1970";
+  const month = parts.find((part) => part.type === "month")?.value ?? "01";
+  const day = parts.find((part) => part.type === "day")?.value ?? "01";
+
+  return `${year}-${month}-${day}`;
+}
+
+function addDaysToDateKey(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
 }
 
 export function formatDateTime(value?: string) {

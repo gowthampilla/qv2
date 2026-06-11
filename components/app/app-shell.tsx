@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AppHeader } from "@/components/app/app-header";
 import { MobileNav } from "@/components/app/mobile-nav";
 import { Sidebar } from "@/components/app/sidebar";
 
@@ -16,6 +17,7 @@ export function AppShell({
       <Sidebar admin={admin} />
       <section className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
         <div className={`mx-auto flex w-full ${maxWidth} flex-col gap-7`}>
+          <AppHeader />
           {children}
         </div>
       </section>

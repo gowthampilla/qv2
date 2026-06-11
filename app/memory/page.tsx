@@ -2,12 +2,15 @@ import { AppShell } from "@/components/app/app-shell";
 import { EmptyState } from "@/components/app/empty-state";
 import { MemoryTimeline } from "@/components/app/memory-timeline";
 import { PageHeader } from "@/components/app/page-header";
-import { getAllMemories, type MemoryItem as MemoryItemType } from "@/lib/v1";
+import { getAllMemories, getCurrentUser, type MemoryItem as MemoryItemType } from "@/lib/v1";
 
 export const dynamic = "force-dynamic";
 
 export default async function MemoryPage() {
-  const memories = await getAllMemories().catch(() => [] as MemoryItemType[]);
+  const user = await getCurrentUser();
+  const memories = await getAllMemories(undefined, { user }).catch(
+    () => [] as MemoryItemType[]
+  );
 
   return (
     <AppShell maxWidth="max-w-5xl">

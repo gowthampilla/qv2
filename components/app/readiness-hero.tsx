@@ -1,4 +1,4 @@
-import { ArrowDown, Target } from "lucide-react";
+import { ArrowDown, Plus, Target } from "lucide-react";
 import { GapCard } from "@/components/app/gap-card";
 import { ReadinessProgressBar } from "@/components/app/readiness-progress-bar";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ export function ReadinessHero({
   readiness,
   quadScore,
   targetReadiness,
+  targetQuadScore,
+  quadScoreGain,
   pendingCount,
   biggestGap
 }: {
@@ -18,13 +20,14 @@ export function ReadinessHero({
   readiness: number;
   quadScore: number;
   targetReadiness: number;
+  targetQuadScore: number;
+  quadScoreGain: number;
   pendingCount: number;
   biggestGap: string;
 }) {
-  const quadScoreGain = pendingCount * 8;
   const impactCopy =
     pendingCount > 0
-      ? `Complete today's ${pendingCount} actions to reach ${targetReadiness}%.`
+      ? `Complete today's ${pendingCount} actions to reach ${targetReadiness}% readiness and ${targetQuadScore} Quad Score.`
       : "Today's focus is complete. Keep your signal warm.";
 
   return (
@@ -55,6 +58,12 @@ export function ReadinessHero({
                 <ArrowDown className="ml-2 h-4 w-4" />
               </a>
             </Button>
+            <Button asChild variant="outline">
+              <a href="#add-work">
+                <Plus className="mr-2 h-4 w-4" />
+                Add work
+              </a>
+            </Button>
             <p className="text-xs leading-5 text-[#8A8A8A]">
               Readiness is a progress signal, not a job guarantee.
             </p>
@@ -79,6 +88,13 @@ export function ReadinessHero({
           <p className="text-sm leading-6 text-[#C0C0C0]">
             Starts at 0. It grows when you complete tasks, add memories, keep streaks, and push code.
           </p>
+          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0A0A0A] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-[#F5F5F5]">Readiness Score</p>
+              <span className="text-sm text-[#C0C0C0]">{readiness}%</span>
+            </div>
+            <ReadinessProgressBar value={readiness} />
+          </div>
           <p className="text-sm leading-6 text-[#8A8A8A]">
             {impactCopy}
           </p>

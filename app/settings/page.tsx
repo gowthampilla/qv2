@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getCurrentUser,
-  getGithubStats,
+  getGithubStatsForUser,
   getGoalCatalog,
   getSelectedGoal
 } from "@/lib/v1";
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   const [stats, goals, selectedGoal] = await Promise.all([
-    getGithubStats().catch(() => ({
+    getGithubStatsForUser(user).catch(() => ({
       connected: false,
       githubUsername: undefined,
       totalRepos: 0,

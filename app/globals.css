@@ -41,12 +41,60 @@
 
 @layer components {
   .premium-surface {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 260px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.024) 1px, transparent 1px),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 340px),
+      radial-gradient(ellipse 90% 42% at 52% -12%, rgba(212, 212, 216, 0.1), transparent 72%),
       #050505;
-    background-size: auto, 72px 72px, 72px 72px, auto;
+  }
+
+  .premium-surface::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(118deg, transparent 0 17%, rgba(212, 212, 216, 0.08) 17.1%, transparent 17.55% 48%, rgba(56, 189, 248, 0.045) 48.12%, transparent 48.55% 100%),
+      linear-gradient(152deg, transparent 0 62%, rgba(212, 212, 216, 0.055) 62.15%, transparent 62.55% 100%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 38%);
+    opacity: 0.95;
+  }
+
+  .premium-surface::after {
+    content: "";
+    position: fixed;
+    top: 7rem;
+    right: -15rem;
+    z-index: 0;
+    width: min(58vw, 36rem);
+    aspect-ratio: 1;
+    pointer-events: none;
+    border: 1px solid rgba(212, 212, 216, 0.12);
+    border-radius: 2rem;
+    transform: rotate(45deg);
+    background:
+      linear-gradient(135deg, rgba(212, 212, 216, 0.065), transparent 34%),
+      linear-gradient(45deg, transparent 58%, rgba(56, 189, 248, 0.035));
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.025),
+      0 0 80px rgba(212, 212, 216, 0.035);
+  }
+
+  .premium-surface > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 768px) {
+    .premium-surface::after {
+      top: 5rem;
+      right: -18rem;
+      width: 28rem;
+      opacity: 0.7;
+    }
   }
 
   .glass-panel {

@@ -11,6 +11,7 @@ import {
   goals,
   saveSelectedGoal
 } from "@/lib/v1";
+import { careerProgressError, isCareerProgressText } from "@/lib/progress-validation";
 
 export async function selectGoalAction(formData: FormData) {
   const goal = String(formData.get("goal") ?? "");
@@ -62,13 +63,54 @@ export async function addManualProgressAction(formData: FormData) {
   const progress = String(formData.get("progress") ?? "").trim();
   const user = await getCurrentUser();
 
-  if (progress) {
+  if (progress && isCareerProgressText(progress)) {
     await addManualProgress(user, progress);
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/memory");
   revalidatePath("/profile");
+}
+
+export type AddWorkState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  savedAt?: string;
+};
+
+export async function addManualProgressFormAction(
+  _previousState: AddWorkState,
+  formData: FormData
+): Promise<AddWorkState> {
+  const progress = String(formData.get("progress") ?? "").trim();
+  const user = await getCurrentUser();
+
+  if (!progress) {
+    return {
+      status: "error",
+      message: "Add a short note about what you completed.",
+      savedAt: undefined
+    };
+  }
+
+  if (!isCareerProgressText(progress)) {
+    return {
+      status: "error",
+      message: careerProgressError(),
+      savedAt: undefined
+    };
+  }
+
+  await addManualProgress(user, progress);
+  revalidatePath("/dashboard");
+  revalidatePath("/memory");
+  revalidatePath("/profile");
+
+  return {
+    status: "success",
+    message: "Work added to memory. Quad Score updated.",
+    savedAt: new Date().toISOString()
+  };
 }
 
 export async function resyncGithubAction() {

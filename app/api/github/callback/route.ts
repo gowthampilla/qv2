@@ -10,7 +10,7 @@ import {
 import { buildActivities } from "@/lib/activity";
 import { storeActivities } from "@/lib/supabase";
 import { env } from "@/lib/env";
-import { getSelectedGoal, refreshStreak } from "@/lib/v1";
+import { getSelectedGoal, refreshStreakForUser } from "@/lib/v1";
 import { setSessionCookies, uuidFromStableValue } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,13 @@ export async function GET(request: NextRequest) {
     const embeddedActivities = await createActivityEmbeddings(activities);
     await storeActivities(embeddedActivities);
     const appUserId = uuidFromStableValue(`github:${user.id}`);
-    await refreshStreak(appUserId).catch(() => 0);
+    await refreshStreakForUser({
+      userId: appUserId,
+      email,
+      githubUsername: user.login,
+      githubUserId: String(user.id),
+      name: user.login
+    }).catch(() => 0);
     const selectedGoal = await getSelectedGoal(appUserId).catch(() => undefined);
 
     const response = selectedGoal ? redirectToDashboard() : redirectToOnboarding();
