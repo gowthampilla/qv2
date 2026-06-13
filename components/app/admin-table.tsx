@@ -23,7 +23,7 @@ export function AdminTable({
           </thead>
           <tbody>
             {rows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-b border-[#2A2A2A] last:border-0 hover:bg-[#171717]/45">
+              <tr key={rowIndex} className="border-b border-[#2A2A2A] last:border-0 hover:bg-[#171717]/55">
                 {row.map((cell, cellIndex) => (
                   <td key={cellIndex} className="px-4 py-4 align-top">
                     {cell}

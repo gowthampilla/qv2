@@ -1,13 +1,17 @@
 import { redirect } from "next/navigation";
 import { AddWorkForm } from "@/components/app/add-work-form";
 import { AppShell } from "@/components/app/app-shell";
-import { FeedCard } from "@/components/app/feed-card";
+import { CoachMessage } from "@/components/app/coach-message";
+import { DailyLoop } from "@/components/app/daily-loop";
+import { GoalHero } from "@/components/app/goal-hero";
 import { MemoryItem } from "@/components/app/memory-item";
+import { NextMilestoneCard } from "@/components/app/next-milestone-card";
 import { OpportunityCard } from "@/components/app/opportunity-card";
-import { QuadInsightCard } from "@/components/app/quad-insight-card";
+import { ProofWall, type ProofItem } from "@/components/app/proof-wall";
 import { ReadinessBreakdown } from "@/components/app/readiness-breakdown";
-import { ReadinessHero } from "@/components/app/readiness-hero";
+import { ShareProgressCard } from "@/components/app/share-progress-card";
 import { TodayFocusCard } from "@/components/app/today-focus-card";
+import { TomorrowPreview } from "@/components/app/tomorrow-preview";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   calculateQuadScore,
@@ -16,7 +20,8 @@ import {
   calculateTodayImpact,
   countScoringMemories,
   getBiggestGap,
-  getReadinessBreakdown
+  getReadinessBreakdown,
+  getStudentStage
 } from "@/lib/readiness";
 import {
   ensureDailyTasks,
@@ -25,12 +30,13 @@ import {
   getAllUserTasks,
   getCurrentStreak,
   getCurrentUser,
-  getFeedPosts,
   getGithubStatsForUser,
   getOpportunities,
   getSelectedGoal,
   todayKey,
-  toDateKey
+  toDateKey,
+  type MemoryItem as MemoryRecord,
+  type UserTask
 } from "@/lib/v1";
 
 export const dynamic = "force-dynamic";
@@ -58,10 +64,9 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  const [tasks, opportunities, feedPosts] = await Promise.all([
+  const [tasks, opportunities] = await Promise.all([
     withPageTimeout(ensureDailyTasks(user.userId, goal.slug), [], 5000),
-    withPageTimeout(getOpportunities(goal.slug, 3), [], 5000),
-    withPageTimeout(getFeedPosts(goal.slug, 2), [], 5000)
+    withPageTimeout(getOpportunities(goal.slug, 3), [], 5000)
   ]);
   const allTasks = await withPageTimeout(getAllUserTasks(user.userId, 100), tasks, 5000);
   const allMemories = await withPageTimeout(
@@ -69,7 +74,7 @@ export default async function DashboardPage() {
     memories,
     5000
   );
-  const fallbackTasks = fallbackTaskTemplates(goal?.slug);
+  const fallbackTasks = fallbackTaskTemplates(goal.slug);
   const completedTasks = allTasks.filter((task) => task.status === "complete").length;
   const scoringMemories = countScoringMemories(allMemories);
   const quadScore = calculateQuadScore({
@@ -94,11 +99,6 @@ export default async function DashboardPage() {
     tasks,
     tasks.length === 0 ? fallbackTasks.length : 0
   );
-  const nextTaskTitle =
-    tasks.find((task) => task.status !== "complete")?.title ??
-    fallbackTasks[0]?.title ??
-    "add one progress update";
-  const recommendedCompany = opportunities[0]?.company ?? null;
   const today = todayKey();
   const activeToday =
     allTasks.some(
@@ -120,34 +120,50 @@ export default async function DashboardPage() {
     completedTasks
   });
   const breakdown = getReadinessBreakdown({
-    goalSelected: Boolean(goal),
+    goalSelected: true,
     scoringMemories,
     githubActivities: stats.totalActivities,
     completedTasks,
     streak,
     opportunities: opportunities.length
   });
-  const insight = buildInsight({
-    goalName: goal?.name,
-    readinessScore,
+  const stage = getStudentStage(readinessScore);
+  const milestone = getNextMilestone(readinessScore);
+  const proofItems = buildProofItems({
+    totalRepos: stats.totalRepos,
+    totalActivities: stats.totalActivities,
+    completedTasks,
+    memories: allMemories
+  });
+  const weeklyCompletedTasks = countRecentTasks(allTasks);
+  const weeklyProofPoints = countRecentMemories(allMemories);
+  const recommendedCompany = opportunities[0]?.company ?? null;
+  const coachMessage = buildCoachMessage({
+    readiness: readinessScore,
+    targetReadiness: projectedImpact.targetReadiness,
     biggestGap,
-    pendingCount: todayImpact.pendingCount,
-    nextTaskTitle,
-    recommendedCompany
+    pendingCount: todayImpact.pendingCount
   });
 
   return (
     <AppShell>
-      <ReadinessHero
+      <GoalHero
         userName={user.name}
         goalName={goal.name}
         readiness={readinessScore}
-        quadScore={quadScore}
         targetReadiness={projectedImpact.targetReadiness}
-        targetQuadScore={projectedImpact.targetQuadScore}
-        quadScoreGain={projectedImpact.quadScoreGain}
         pendingCount={todayImpact.pendingCount}
         biggestGap={biggestGap}
+        quadScore={quadScore}
+        streak={streak}
+        stage={stage}
+      />
+
+      <NextMilestoneCard
+        readiness={readinessScore}
+        milestone={milestone}
+        reward={getMilestoneReward(milestone, goal.name)}
+        pendingCount={todayImpact.pendingCount}
       />
 
       <TodayFocusCard
@@ -156,123 +172,217 @@ export default async function DashboardPage() {
         goalName={goal.name}
         opportunityCompany={recommendedCompany}
         taskGains={projectedImpact.taskGains}
+        readiness={readinessScore}
+        targetReadiness={projectedImpact.targetReadiness}
+        biggestGap={biggestGap}
       />
 
-      <QuadInsightCard insight={insight} />
+      <CoachMessage message={coachMessage} />
+
+      <DailyLoop />
 
       <ReadinessBreakdown segments={breakdown} />
 
-      <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
-        <div className="grid gap-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Career memory preview</CardTitle>
-              <CardDescription>Latest milestones Quad has remembered.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {allMemories.length === 0 ? (
-                <p className="text-sm leading-6 text-muted-foreground">
-                  No memory yet. Add one short progress note today.
-                </p>
-              ) : (
-                allMemories.slice(0, 3).map((memory) => (
-                  <MemoryItem key={`${memory.source}-${memory.id}`} memory={memory} />
-                ))
-              )}
-            </CardContent>
-          </Card>
+      <ProofWall items={proofItems} />
 
-          <Card id="add-work">
-            <CardHeader>
-              <CardTitle>Add Work</CardTitle>
-              <CardDescription>
-                Save LeetCode, project, learning, interview, or build progress to memory.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Career memory preview</CardTitle>
+          <CardDescription>
+            Your latest proof, written as professional milestones.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {allMemories.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#2A2A2A] bg-[#0A0A0A] p-4">
+              <p className="text-sm font-medium text-[#F5F5F5]">No memory yet.</p>
+              <p className="mt-1 text-sm leading-6 text-[#8A8A8A]">
+                Add one short progress note and Quad will turn it into a career milestone.
+              </p>
+            </div>
+          ) : (
+            allMemories.slice(0, 3).map((memory) => (
+              <MemoryItem key={`${memory.source}-${memory.id}`} memory={memory} />
+            ))
+          )}
+
+          <div id="add-work" className="border-t border-[#2A2A2A] pt-5">
+            <p className="text-sm font-medium text-[#F5F5F5]">Add today&apos;s progress</p>
+            <p className="mt-1 text-sm leading-6 text-[#8A8A8A]">
+              Save project, learning, interview, or problem-solving progress.
+            </p>
+            <div className="mt-4">
               <AddWorkForm />
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="grid content-start gap-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recommended opportunity</CardTitle>
-              <CardDescription>Curated for your goal.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {opportunities.length > 0 ? (
-                opportunities.slice(0, 1).map((item) => (
-                  <OpportunityCard key={item.id} opportunity={item} goalName={goal?.name} />
-                ))
-              ) : (
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {"We're preparing matched opportunities for your goal."}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recommended opportunity</CardTitle>
+          <CardDescription>Curated around your current goal and proof.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {opportunities.length > 0 ? (
+            <OpportunityCard opportunity={opportunities[0]} goalName={goal.name} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#2A2A2A] bg-[#0A0A0A] p-4">
+              <p className="text-sm font-medium text-[#F5F5F5]">
+                We&apos;re preparing curated opportunities.
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[#8A8A8A]">
+                Today, focus on improving your readiness and adding one visible proof point.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Feed preview</CardTitle>
-              <CardDescription>Founder-curated guidance.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {(feedPosts.length > 0
-                ? feedPosts
-                : [
-                    {
-                      id: "fallback-feed-1",
-                      title: "Build one visible proof point today",
-                      description:
-                        "A small shipped artifact is more useful than a long private plan.",
-                      content_type: "roadmap tip",
-                      url: ""
-                    }
-                  ]
-              ).map((post) => (
-                <FeedCard
-                  key={post.id}
-                  title={post.title}
-                  description={post.description}
-                  contentType={post.content_type}
-                  url={post.url}
-                />
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+      <section className="grid gap-5 lg:grid-cols-2">
+        <TomorrowPreview focus={getTomorrowFocus(biggestGap, goal.name)} />
+        <ShareProgressCard
+          text={buildShareText({
+            goalName: goal.name,
+            readiness: readinessScore,
+            completedTasks: weeklyCompletedTasks,
+            proofPoints: weeklyProofPoints
+          })}
+        />
       </section>
     </AppShell>
   );
 }
 
-function buildInsight({
-  goalName,
-  readinessScore,
-  biggestGap,
-  pendingCount,
-  nextTaskTitle,
-  recommendedCompany
-}: {
-  goalName?: string;
-  readinessScore: number;
-  biggestGap: string;
-  pendingCount: number;
-  nextTaskTitle: string;
-  recommendedCompany?: string | null;
-}) {
-  if (!goalName) {
-    return "Choose a goal first. Then Quad will turn it into a small set of actions for today.";
+function getNextMilestone(readiness: number) {
+  return [20, 40, 60, 80, 100].find((value) => value > readiness) ?? 100;
+}
+
+function getMilestoneReward(milestone: number, goalName: string) {
+  if (milestone <= 40) {
+    return "A stronger daily foundation";
   }
 
-  const companyText = recommendedCompany
-    ? `${recommendedCompany} and similar teams`
-    : "companies like Microsoft, Cognizant, and similar teams";
+  if (milestone <= 60) {
+    return "A consistent builder profile";
+  }
 
-  return `You're ${readinessScore}% ready for ${goalName}. Next: complete "${nextTaskTitle}". It improves ${biggestGap.toLowerCase()} and creates proof for ${companyText}. ${pendingCount} focus actions are available today.`;
+  if (milestone <= 80) {
+    return `A stronger ${goalName} profile`;
+  }
+
+  return "An opportunity-ready career profile";
+}
+
+function buildCoachMessage({
+  readiness,
+  targetReadiness,
+  biggestGap,
+  pendingCount
+}: {
+  readiness: number;
+  targetReadiness: number;
+  biggestGap: string;
+  pendingCount: number;
+}) {
+  if (pendingCount === 0) {
+    return `Today's focus is complete. Your next improvement area is ${biggestGap.toLowerCase()}.`;
+  }
+
+  return `You're close to ${targetReadiness}%. Today's primary task improves ${biggestGap.toLowerCase()}, your clearest growth area.`;
+}
+
+function buildProofItems({
+  totalRepos,
+  totalActivities,
+  completedTasks,
+  memories
+}: {
+  totalRepos: number;
+  totalActivities: number;
+  completedTasks: number;
+  memories: MemoryRecord[];
+}): ProofItem[] {
+  const items: ProofItem[] = [];
+
+  if (totalRepos > 0) {
+    items.push({
+      label: `${totalRepos} GitHub ${totalRepos === 1 ? "repo" : "repos"} imported`,
+      detail: "Your public project work is connected to Quad.",
+      type: "repo"
+    });
+  }
+
+  if (totalActivities > 0) {
+    items.push({
+      label: `${totalActivities} GitHub ${totalActivities === 1 ? "activity" : "activities"} remembered`,
+      detail: "Commits and repository progress are part of your career memory.",
+      type: "commit"
+    });
+  }
+
+  if (completedTasks > 0) {
+    items.push({
+      label: `${completedTasks} ${completedTasks === 1 ? "task" : "tasks"} completed`,
+      detail: "Focused actions are building your consistency signal.",
+      type: "task"
+    });
+  }
+
+  memories.slice(0, 3).forEach((memory) => {
+    items.push({
+      label: memory.repoName ? `${memory.repoName} milestone` : "Career memory added",
+      detail: memory.memorySentence,
+      type: memory.activityType === "task completion" ? "task" : "memory"
+    });
+  });
+
+  return items;
+}
+
+function getTomorrowFocus(biggestGap: string, goalName: string) {
+  const gapFocus: Record<string, string> = {
+    "Proof of work": "Project depth",
+    "GitHub activity": "GitHub activity",
+    Consistency: "Consistency and follow-through",
+    "Opportunity applications": "Opportunity preparation"
+  };
+
+  return [
+    gapFocus[biggestGap] ?? biggestGap,
+    goalName.includes("DSA") ? "Interview problem solving" : "Interview practice",
+    "One visible proof point"
+  ];
+}
+
+function countRecentTasks(tasks: UserTask[]) {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+  return tasks.filter(
+    (task) =>
+      task.status === "complete" &&
+      task.completed_at &&
+      new Date(task.completed_at).getTime() >= cutoff
+  ).length;
+}
+
+function countRecentMemories(memories: MemoryRecord[]) {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return memories.filter((memory) => new Date(memory.occurredAt).getTime() >= cutoff).length;
+}
+
+function buildShareText({
+  goalName,
+  readiness,
+  completedTasks,
+  proofPoints
+}: {
+  goalName: string;
+  readiness: number;
+  completedTasks: number;
+  proofPoints: number;
+}) {
+  return `This week I reached ${readiness}% readiness for ${goalName} by completing ${completedTasks} ${completedTasks === 1 ? "task" : "tasks"} and adding ${proofPoints} ${proofPoints === 1 ? "proof point" : "proof points"}.`;
 }
 
 function withPageTimeout<T>(promise: Promise<T>, fallback: T, ms: number) {

@@ -12,7 +12,11 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-5 border-b border-[#2A2A2A] pb-6 md:flex-row md:items-end md:justify-between">
+    <header className="relative flex flex-col gap-5 border-b border-[#2A2A2A] pb-6 md:flex-row md:items-end md:justify-between">
+      <span
+        aria-hidden="true"
+        className="absolute bottom-[-1px] left-0 h-px w-32 bg-gradient-to-r from-[#D4D4D8]/70 to-transparent"
+      />
       <div>
         {eyebrow ? (
           <p className="text-sm font-medium text-[#C0C0C0]">{eyebrow}</p>

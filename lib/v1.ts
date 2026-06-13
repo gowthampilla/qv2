@@ -259,7 +259,11 @@ export async function getOpportunities(goalSlug?: string, limit?: number) {
   }
 
   const { data, error } = await query;
-  return error ? [] : ((data ?? []) as Opportunity[]);
+  return error
+    ? []
+    : ((data ?? []) as Opportunity[]).map((opportunity) =>
+        normalizeOpportunity(opportunity, goalSlug)
+      );
 }
 
 export async function getFeedPosts(goalSlug?: string, limit?: number) {
@@ -545,43 +549,243 @@ export async function getTaskTemplates(goalSlug?: string, limit?: number) {
 }
 
 export function fallbackTaskTemplates(goalSlug?: string): TaskTemplate[] {
-  const label =
-    fallbackGoals.find((goal) => goal.slug === goalSlug)?.name ?? "your goal";
-  return [
-    {
-      id: "",
-      title: "Ship one proof point",
-      description: `Build, fix, or document one visible artifact that supports ${label}.`,
-      goal_slug: goalSlug ?? null,
-      difficulty: "medium",
-      category: "build",
-      points: 10,
-      is_active: true,
-      created_at: new Date().toISOString()
+  const tasksByGoal: Record<
+    string,
+    Array<{ title: string; description: string; category: string; points: number }>
+  > = {
+    "ai-internship": [
+      {
+        title: "Build one AI workflow improvement",
+        description: "Improve one practical AI feature and save a note about the implementation decision.",
+        category: "build",
+        points: 15
+      },
+      {
+        title: "Record a 60-second project explanation",
+        description: "Explain the problem, your approach, the AI workflow, and the result clearly.",
+        category: "interview",
+        points: 10
+      },
+      {
+        title: "Document one model decision",
+        description: "Write why you chose the model, prompt structure, data shape, or evaluation method.",
+        category: "portfolio",
+        points: 10
+      }
+    ],
+    "java-backend-job": [
+      {
+        title: "Implement one Spring Boot endpoint",
+        description: "Add validation, useful errors, and a clean response shape to one API path.",
+        category: "build",
+        points: 15
+      },
+      {
+        title: "Add one backend test",
+        description: "Cover a service, controller, or repository path with a focused test.",
+        category: "quality",
+        points: 10
+      },
+      {
+        title: "Explain one backend decision",
+        description: "Practice explaining an API, database, caching, or error-handling decision.",
+        category: "interview",
+        points: 10
+      }
+    ],
+    "full-stack-developer": [
+      {
+        title: "Ship one complete product slice",
+        description: "Complete one small feature across data, backend, UI, and final verification.",
+        category: "build",
+        points: 15
+      },
+      {
+        title: "Improve one production UI state",
+        description: "Add a useful loading, empty, error, or success state to an existing workflow.",
+        category: "frontend",
+        points: 10
+      },
+      {
+        title: "Write one API contract",
+        description: "Document the request, response, validation, and failure behavior for one endpoint.",
+        category: "backend",
+        points: 10
+      }
+    ],
+    "improve-dsa": [
+      {
+        title: "Solve two focused DSA problems",
+        description: "Solve two related problems and record the pattern, complexity, and edge cases.",
+        category: "practice",
+        points: 15
+      },
+      {
+        title: "Redo one missed problem",
+        description: "Re-solve a problem you previously missed without checking the solution first.",
+        category: "review",
+        points: 10
+      },
+      {
+        title: "Explain one solution aloud",
+        description: "Walk through the approach, tradeoffs, and complexity as if you were in an interview.",
+        category: "interview",
+        points: 10
+      }
+    ],
+    "build-startup": [
+      {
+        title: "Talk to one potential user",
+        description: "Ask about the current workflow, pain, workaround, and desired outcome.",
+        category: "discovery",
+        points: 15
+      },
+      {
+        title: "Ship one product improvement",
+        description: "Make one focused change that improves activation, retention, clarity, or trust.",
+        category: "build",
+        points: 10
+      },
+      {
+        title: "Write one learning note",
+        description: "Capture what changed in your product thinking and what you will test next.",
+        category: "strategy",
+        points: 10
+      }
+    ],
+    "get-remote-developer-job": [
+      {
+        title: "Apply to one high-signal remote role",
+        description: "Send one tailored application with a concise proof-of-work note.",
+        category: "applications",
+        points: 15
+      },
+      {
+        title: "Publish one remote-ready work update",
+        description: "Write a clear update with context, decision, tradeoff, result, and next step.",
+        category: "communication",
+        points: 10
+      },
+      {
+        title: "Improve one public project artifact",
+        description: "Polish a README, demo, case study, or project explanation for async review.",
+        category: "portfolio",
+        points: 10
+      }
+    ]
+  };
+  const source = tasksByGoal[goalSlug ?? ""] ?? tasksByGoal["ai-internship"];
+  const createdAt = new Date().toISOString();
+
+  return source.map((task) => ({
+    id: "",
+    title: task.title,
+    description: task.description,
+    goal_slug: goalSlug ?? null,
+    difficulty: task.points >= 15 ? "medium" : "easy",
+    category: task.category,
+    points: task.points,
+    is_active: true,
+    created_at: createdAt
+  }));
+}
+
+function normalizeOpportunity(opportunity: Opportunity, goalSlug?: string): Opportunity {
+  const slug = opportunity.goal_slug ?? goalSlug ?? "ai-internship";
+  const fallback = getOpportunityFallback(slug);
+  const weakTitle = isWeakDisplayText(opportunity.title, 6);
+  const weakCompany =
+    isWeakDisplayText(opportunity.company, 4) ||
+    /quad sample|test company|demo company/i.test(opportunity.company);
+  const weakDescription =
+    isWeakDisplayText(opportunity.description, 28) ||
+    /sample admin|sample opportunity|test opportunity/i.test(opportunity.description);
+  const skills = (opportunity.required_skills ?? []).filter(
+    (skill) => !isWeakDisplayText(skill, 2)
+  );
+
+  return {
+    ...opportunity,
+    title: weakTitle ? fallback.title : opportunity.title.trim(),
+    company: weakCompany ? fallback.company : opportunity.company.trim(),
+    description: weakDescription
+      ? fallback.description
+      : opportunity.description.trim(),
+    location: isWeakDisplayText(opportunity.location ?? "", 2)
+      ? "Remote"
+      : opportunity.location,
+    type: isWeakDisplayText(opportunity.type ?? "", 3)
+      ? fallback.type
+      : opportunity.type,
+    source: isWeakDisplayText(opportunity.source ?? "", 3)
+      ? "Quad curated"
+      : opportunity.source,
+    required_skills: skills.length > 0 ? skills.slice(0, 5) : fallback.skills
+  };
+}
+
+function getOpportunityFallback(goalSlug: string) {
+  const fallbacks: Record<
+    string,
+    { title: string; company: string; description: string; type: string; skills: string[] }
+  > = {
+    "ai-internship": {
+      title: "AI Product Intern",
+      company: "Early AI Startup",
+      description: "Help build, test, and document practical AI product workflows.",
+      type: "Internship",
+      skills: ["Next.js", "OpenAI", "GitHub"]
     },
-    {
-      id: "",
-      title: "Practice one core skill",
-      description: "Spend 30 focused minutes on a skill that directly improves your next opportunity.",
-      goal_slug: goalSlug ?? null,
-      difficulty: "easy",
-      category: "practice",
-      points: 10,
-      is_active: true,
-      created_at: new Date().toISOString()
+    "java-backend-job": {
+      title: "Backend Engineering Intern",
+      company: "Product Engineering Team",
+      description: "Build reliable APIs and improve backend services using Java and Spring Boot.",
+      type: "Internship",
+      skills: ["Java", "Spring Boot", "SQL"]
     },
-    {
-      id: "",
-      title: "Write a progress note",
-      description: "Capture what you learned, built, or improved today in one clear sentence.",
-      goal_slug: goalSlug ?? null,
-      difficulty: "easy",
-      category: "memory",
-      points: 10,
-      is_active: true,
-      created_at: new Date().toISOString()
+    "full-stack-developer": {
+      title: "Full Stack Developer Intern",
+      company: "SaaS Product Studio",
+      description: "Ship production-ready features across frontend, backend, and data workflows.",
+      type: "Internship",
+      skills: ["React", "Next.js", "Supabase"]
+    },
+    "improve-dsa": {
+      title: "Software Engineering Interview Program",
+      company: "Engineering Talent Network",
+      description: "Practice structured problem solving and strengthen technical interview readiness.",
+      type: "Program",
+      skills: ["DSA", "Problem Solving", "Algorithms"]
+    },
+    "build-startup": {
+      title: "Founder Fellowship",
+      company: "Early Builder Community",
+      description: "Validate a problem, ship an MVP, and learn through direct user feedback.",
+      type: "Fellowship",
+      skills: ["Product", "Customer Discovery", "MVP"]
+    },
+    "get-remote-developer-job": {
+      title: "Remote Software Developer",
+      company: "Distributed Product Team",
+      description: "Contribute to product features with strong ownership and written communication.",
+      type: "Remote role",
+      skills: ["GitHub", "Communication", "Web Development"]
     }
-  ];
+  };
+
+  return fallbacks[goalSlug] ?? fallbacks["ai-internship"];
+}
+
+function isWeakDisplayText(value: string, minimumLength: number) {
+  const normalized = value.trim();
+  const letters = normalized.toLowerCase().replace(/[^a-z]/g, "");
+  const uniqueLetters = new Set(letters).size;
+
+  return (
+    normalized.length < minimumLength ||
+    /^(test|demo|sample|asdf|qwer|we+w+e?|ww+w*e?)$/i.test(normalized) ||
+    (letters.length >= 4 && uniqueLetters < 3)
+  );
 }
 
 async function getGithubMemories(

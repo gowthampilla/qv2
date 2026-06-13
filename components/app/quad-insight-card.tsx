@@ -5,7 +5,7 @@ export function QuadInsightCard({ insight }: { insight: string }) {
   return (
     <Card className="glass-panel">
       <CardContent className="p-5">
-        <div className="flex items-center gap-2 text-sm font-medium text-[#7DD3FC]">
+        <div className="flex items-center gap-2 text-sm font-medium text-[#38BDF8]">
           <Sparkles className="h-4 w-4" />
           Quad Says
         </div>

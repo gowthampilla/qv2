@@ -16,7 +16,7 @@ export function BuilderDNA() {
             <p className="text-sm font-medium text-[#C0C0C0]">Builder DNA</p>
             <p className="mt-1 text-xs text-[#8A8A8A]">Signals from your work.</p>
           </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#38BDF8]/25 bg-[#38BDF8]/10 text-[#7DD3FC]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#38BDF8]/25 bg-[#38BDF8]/10 text-[#38BDF8]">
             <Cpu className="h-4 w-4" />
           </div>
         </div>

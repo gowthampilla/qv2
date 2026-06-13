@@ -63,6 +63,9 @@ export default async function TasksPage() {
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
                       {task.description}
                     </p>
+                    <p className="mt-2 text-sm leading-6 text-[#C0C0C0]">
+                      Why this matters: This creates practical proof for your selected goal.
+                    </p>
                     <p className="mt-2 text-xs text-muted-foreground">{task.points} pts</p>
                   </div>
                 </CardContent>

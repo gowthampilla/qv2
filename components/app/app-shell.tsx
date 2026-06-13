@@ -13,10 +13,10 @@ export function AppShell({
   maxWidth?: string;
 }) {
   return (
-    <main className="premium-surface min-h-screen pb-20 md:flex md:pb-0">
+    <main className="premium-surface min-h-screen pb-28 md:flex md:pb-0">
       <Sidebar admin={admin} />
-      <section className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
-        <div className={`mx-auto flex w-full ${maxWidth} flex-col gap-7`}>
+      <section className="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+        <div className={`mx-auto flex w-full ${maxWidth} flex-col gap-6`}>
           <AppHeader />
           {children}
         </div>

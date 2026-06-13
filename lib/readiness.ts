@@ -13,6 +13,12 @@ export type ReadinessSegment = {
   description: string;
 };
 
+export type StudentStage = {
+  name: string;
+  next: string | null;
+  level: number;
+};
+
 const READINESS_WEIGHTS = {
   base: 10,
   goal: 10,
@@ -233,6 +239,40 @@ export function getBiggestGap({
   }
 
   return "Opportunity applications";
+}
+
+export function getStudentStage(readiness: number): StudentStage {
+  const value = clamp(readiness);
+
+  if (value <= 20) {
+    return { name: "Starter", next: "Building Basics", level: 1 };
+  }
+
+  if (value <= 40) {
+    return { name: "Building Basics", next: "Consistent Builder", level: 2 };
+  }
+
+  if (value <= 60) {
+    return { name: "Consistent Builder", next: "Project Ready", level: 3 };
+  }
+
+  if (value <= 80) {
+    return { name: "Project Ready", next: "Opportunity Ready", level: 4 };
+  }
+
+  return { name: "Opportunity Ready", next: null, level: 5 };
+}
+
+export function getReadinessLabel(value: number) {
+  if (value >= 70) {
+    return "Strong";
+  }
+
+  if (value >= 35) {
+    return "Improving";
+  }
+
+  return "Weak";
 }
 
 export function getReadinessBreakdown({

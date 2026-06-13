@@ -11,7 +11,7 @@ export function FormCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="bg-[#111111]">
+    <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}

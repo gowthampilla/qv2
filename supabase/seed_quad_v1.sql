@@ -13,6 +13,7 @@ on conflict (slug) do update set
 insert into public.task_templates (title, description, goal_slug, difficulty, category, points)
 values
   ('Build one AI feature demo', 'Create or improve a small feature that uses an AI API and write a short note about the implementation.', 'ai-internship', 'medium', 'build', 15),
+  ('Record a 60-second AI project explanation', 'Explain the problem, your approach, the AI workflow, and the result in clear interview-ready language.', 'ai-internship', 'easy', 'interview', 10),
   ('Read one applied AI engineering article', 'Summarize one practical lesson you can apply to your next AI project.', 'ai-internship', 'easy', 'learning', 10),
   ('Document an AI project decision', 'Write why you chose a model, prompt, data shape, or evaluation approach.', 'ai-internship', 'easy', 'portfolio', 10),
   ('Practice one AI interview concept', 'Review embeddings, RAG, evals, agents, or prompt design and capture three takeaways.', 'ai-internship', 'medium', 'interview', 15),
@@ -27,7 +28,7 @@ values
   ('Solve two DSA problems', 'Complete two focused problems and write the pattern used for each.', 'improve-dsa', 'medium', 'practice', 15),
   ('Review one DSA pattern', 'Study sliding window, two pointers, graphs, DP, trees, or heaps with one example.', 'improve-dsa', 'easy', 'learning', 10),
   ('Redo one missed problem', 'Re-solve a problem you previously missed without looking at the solution first.', 'improve-dsa', 'medium', 'review', 15),
-  ('Write a complexity note', 'For today’s practice, record time complexity, space complexity, and one edge case.', 'improve-dsa', 'easy', 'interview', 10),
+  ('Write a complexity note', 'For today''s practice, record time complexity, space complexity, and one edge case.', 'improve-dsa', 'easy', 'interview', 10),
   ('Talk to one potential user', 'Ask one target user about their workflow, pain, or current workaround.', 'build-startup', 'medium', 'discovery', 15),
   ('Ship one product improvement', 'Make one change that improves activation, retention, clarity, or user trust.', 'build-startup', 'medium', 'build', 15),
   ('Write one positioning note', 'Clarify who the product is for, what problem it solves, and why now.', 'build-startup', 'easy', 'strategy', 10),
@@ -40,17 +41,20 @@ on conflict do nothing;
 
 insert into public.feed_posts (title, description, goal_slug, content_type, url)
 values
-  ('AI internship proof-of-work checklist', 'Build a small demo, explain your model choice, and show evaluation thinking.', 'ai-internship', 'roadmap tip', ''),
-  ('Backend API reliability habit', 'Treat validation, errors, tests, and logs as part of the feature, not cleanup.', 'java-backend-job', 'roadmap tip', ''),
-  ('Full-stack project idea: issue tracker', 'Build auth, CRUD, filters, activity log, and deployment for a compact portfolio project.', 'full-stack-developer', 'project idea', ''),
-  ('DSA pattern focus: sliding window', 'Use a fixed or variable window when contiguous ranges matter.', 'improve-dsa', 'learning resource', ''),
-  ('Startup validation challenge', 'Before building more, ask five users what they currently do without your product.', 'build-startup', 'challenge', ''),
-  ('Remote developer signal', 'Strong remote candidates show writing clarity, ownership, and shipped artifacts.', 'get-remote-developer-job', 'roadmap tip', '')
+  ('Build an interview-ready AI demo', 'Ship one focused workflow, document the model decision, and prepare a 60-second explanation.', 'ai-internship', 'weekly focus', ''),
+  ('Make one backend feature production-ready', 'Add validation, useful errors, a test, and a short API note to one Spring Boot endpoint.', 'java-backend-job', 'weekly focus', ''),
+  ('Turn one feature into a portfolio story', 'Show the user problem, implementation decision, final UI, and deployed result.', 'full-stack-developer', 'portfolio tip', ''),
+  ('Practice one DSA pattern deeply', 'Solve one new problem, redo one missed problem, and explain the pattern without notes.', 'improve-dsa', 'practice plan', ''),
+  ('Run one high-signal user conversation', 'Ask about the current workflow, pain, workaround, and what a useful solution would change.', 'build-startup', 'founder challenge', ''),
+  ('Publish one remote-ready work update', 'Write a concise update with context, decision, tradeoff, result, and next step.', 'get-remote-developer-job', 'communication tip', '')
 on conflict do nothing;
 
 insert into public.opportunities (title, company, description, location, type, goal_slug, required_skills, url, source)
 values
-  ('AI Product Engineering Internship', 'Quad Sample', 'Sample admin-created opportunity for students building AI product demos.', 'Remote', 'Internship', 'ai-internship', array['TypeScript','OpenAI','Next.js'], '', 'Seed'),
-  ('Java Backend Developer Practice Track', 'Quad Sample', 'Sample opportunity-style track focused on Java APIs, testing, and backend fundamentals.', 'Remote', 'Practice', 'java-backend-job', array['Java','Spring Boot','SQL'], '', 'Seed'),
-  ('Full Stack Builder Fellowship', 'Quad Sample', 'Sample opportunity for builders shipping full-stack projects with strong product polish.', 'Remote', 'Fellowship', 'full-stack-developer', array['React','Next.js','Supabase'], '', 'Seed')
+  ('AI Product Intern', 'Early AI Startup', 'Help build, test, and document practical AI product workflows for real users.', 'Remote', 'Internship', 'ai-internship', array['Next.js','OpenAI','GitHub'], '', 'Quad curated'),
+  ('Backend Engineering Intern', 'Product Engineering Team', 'Build reliable APIs and improve backend services using Java and Spring Boot.', 'Hybrid', 'Internship', 'java-backend-job', array['Java','Spring Boot','SQL'], '', 'Quad curated'),
+  ('Full Stack Developer Intern', 'SaaS Product Studio', 'Ship production-ready features across frontend, backend, and data workflows.', 'Remote', 'Internship', 'full-stack-developer', array['React','Next.js','Supabase'], '', 'Quad curated'),
+  ('Software Engineering Interview Program', 'Engineering Talent Network', 'Practice structured problem solving and strengthen technical interview readiness.', 'Online', 'Program', 'improve-dsa', array['DSA','Algorithms','Problem Solving'], '', 'Quad curated'),
+  ('Founder Fellowship', 'Early Builder Community', 'Validate a problem, ship an MVP, and learn through direct user feedback.', 'Hybrid', 'Fellowship', 'build-startup', array['Product','Customer Discovery','MVP'], '', 'Quad curated'),
+  ('Remote Software Developer', 'Distributed Product Team', 'Contribute to product features with strong ownership and written communication.', 'Remote', 'Entry level', 'get-remote-developer-job', array['GitHub','Communication','Web Development'], '', 'Quad curated')
 on conflict do nothing;

@@ -24,6 +24,9 @@ export function OpportunityCard({
             <p className="mt-4 flex items-center gap-2 text-sm text-[#C0C0C0]">
               <Briefcase className="h-4 w-4" />
               {opportunity.company}
+              {opportunity.source ? (
+                <span className="text-xs text-[#71717A]">via {opportunity.source}</span>
+              ) : null}
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-normal text-[#F5F5F5]">
               {opportunity.title}
@@ -33,7 +36,8 @@ export function OpportunityCard({
             </p>
             {goalName ? (
               <p className="mt-3 text-sm leading-6 text-[#C0C0C0]">
-                This matches your goal because it asks for visible skills you can build and show.
+                Why it matches: the role values skills you can prove through your current goal,
+                projects, and GitHub activity.
               </p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
